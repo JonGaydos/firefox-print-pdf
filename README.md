@@ -46,6 +46,32 @@ right-click items).
 Load it unsigned for testing at `about:debugging#/runtime/this-firefox`, "Load
 Temporary Add-on", and pick `src/manifest.json`. It disappears on restart.
 
+## Setting up a new PC
+
+The extension does not install itself through Firefox Sync. Sync only
+auto-installs add-ons listed publicly on AMO, and this one is unlisted on
+purpose. Settings are different: they live in Firefox Sync storage, so any
+machine logged into the same Firefox account picks up your options
+automatically.
+
+One-time steps per machine, about 30 seconds:
+
+1. Download `print_to_pdf.xpi` from this repository's Releases page
+   (https://github.com/JonGaydos/firefox-print-pdf/releases).
+2. Open `about:addons`, click the gear icon, "Install Add-on From File",
+   and pick the downloaded `.xpi`.
+3. Pin the button: puzzle-piece menu in the toolbar, gear next to
+   Print to PDF, "Pin to Toolbar".
+4. First save: pick the Downloads folder in the Save dialog. Firefox
+   remembers it per machine from then on.
+
+The keyboard shortcut (`Ctrl+Shift+F`) and the right-click menu work
+immediately. No account, no signing, no build tools needed on the new
+machine.
+
+Only these steps require the development setup below, and only on one
+machine: changing the code, re-signing, and publishing a new release.
+
 ## Signing and installing permanently
 
 Release Firefox will not install unsigned extensions permanently. Signing is
@@ -61,11 +87,14 @@ free and the add-on stays private.
 6. Install it at `about:addons`, gear icon, "Install Add-on From File".
 7. Pin the button to the toolbar from the puzzle-piece menu.
 
-To update: bump `version` in `src/manifest.json`, then repeat steps 2 to 6. The
-add-on id must never change or AMO treats it as a different extension.
+To update: bump `version` in `src/manifest.json`, then repeat steps 2 to 6,
+and upload the new signed `.xpi` to a GitHub release:
 
-To install on another machine, copy the signed `.xpi` and use step 6. No
-re-signing needed.
+    gh release create v<version> <signed>.xpi --title "v<version>" --notes "<what changed>"
+
+The add-on id must never change or AMO treats it as a different extension.
+Machines with the old version keep working; install the new `.xpi` over the
+old one to update them.
 
 ## Keyboard shortcut
 

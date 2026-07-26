@@ -5,7 +5,7 @@ Save dialog opens with the filename already filled in from the page title.
 
 ## Use
 
-- Click the toolbar button, or press `Ctrl+Shift+X`, or right-click the page
+- Click the toolbar button, or press `Ctrl+Shift+F`, or right-click the page
   and choose "Save as PDF".
 - Hold Shift while clicking the button, or choose "Save as PDF (print dialog)",
   to open Firefox's print preview instead, where paper size, scale, and page
@@ -69,7 +69,7 @@ re-signing needed.
 
 ## Keyboard shortcut
 
-The default is `Ctrl+Shift+X`. Rebind it at `about:addons`, gear icon,
+The default is `Ctrl+Shift+F`. Rebind it at `about:addons`, gear icon,
 "Manage Extension Shortcuts". Firefox only accepts letters, digits, function
 keys, and a short list of named keys, so combinations like `Ctrl+[` cannot be
 bound.

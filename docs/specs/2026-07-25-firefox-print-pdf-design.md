@@ -146,10 +146,13 @@ because `key_quitApplication` is guarded to `accel,shift` under `XP_WIN`
 and plain `accel` elsewhere, so it would quit Firefox on Linux and
 macOS. It was rejected for that reason.
 
-`Ctrl+Shift+X` was chosen instead. It appears in neither
-`browser-sets.inc` nor the DevTools shortcut set, and it is safe on every
-platform. Note that `Ctrl+Shift+Z` is the DevTools Debugger panel and
-`Ctrl+Shift+S` is Screenshot, so neither is available.
+`Ctrl+Shift+X` was chosen first. It appears in neither
+`browser-sets.inc` nor the DevTools shortcut set, but verification on
+2026-07-25 found it silently claimed in this profile, presumably by
+another installed extension, and it never fired even as a named command.
+The default is therefore `Ctrl+Shift+F`, the documented fallback. Note
+that `Ctrl+Shift+Z` is the DevTools Debugger panel and `Ctrl+Shift+S` is
+Screenshot, so neither is available.
 
 ### Unsigned extensions
 

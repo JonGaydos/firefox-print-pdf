@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Print to PDF options</title>
+    <style>
+      body { font: message-box; font-size: 13px; margin: 16px; min-width: 340px; }
+      h1 { font-size: 15px; margin: 0 0 14px; font-weight: 600; }
+      label { display: block; margin: 10px 0; }
+      select { margin-left: 6px; }
+      p.note { color: GrayText; margin: 18px 0 0; line-height: 1.4; }
+    </style>
+  </head>
+  <body>
+    <h1>Print to PDF</h1>
+
+    <label><input type="checkbox" id="headers"> Show headers and footers (title, URL, page number, date)</label>
+    <label><input type="checkbox" id="backgrounds"> Render background colors and images</label>
+    <label><input type="checkbox" id="stripSite"> Remove the trailing site name from the filename</label>
+    <label><input type="checkbox" id="showContextMenu"> Show the right-click menu items</label>
+
+    <label>Orientation
+      <select id="orientation">
+        <option value="portrait">Portrait</option>
+        <option value="landscape">Landscape</option>
+      </select>
+    </label>
+
+    <label>Date in the filename
+      <select id="datePosition">
+        <option value="after">After the title</option>
+        <option value="before">Before the title</option>
+        <option value="none">No date</option>
+      </select>
+    </label>
+
+    <p class="note">
+      Changes apply to the next save. The Save dialog opens in the folder you
+      last saved to, which Firefox controls and this extension cannot change.
+    </p>
+
+    <script src="settings.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

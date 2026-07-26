@@ -26,6 +26,10 @@
       "description": "Save the page as a PDF"
     }
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
   "icons": {
     "48": "icons/icon.svg",
     "96": "icons/icon.svg"

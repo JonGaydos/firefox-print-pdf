@@ -108,8 +108,10 @@ process, so it is not blocked by it.
 
 The error badge is retained for genuine failures (no active tab, print
 engine errors), but there is no known page class that reliably triggers
-it. One consequence remains: on pages where `activeTab` does not expose
-the title, the filename falls back as described under Filename.
+it. The tab title is also exposed normally there: `about:preferences`
+suggested `Settings 2026-07-25`, so the hostname fallback did not apply
+either. The filename fallbacks remain in place for pages without titles
+generally.
 
 ### Print rendering is not screen rendering
 
@@ -442,10 +444,8 @@ unsigned extension through `about:debugging` and before signing:
 7. A page with no title produces the hostname.
 8. The resulting PDF has no header or footer text and renders background
    colors and images.
-9. An `about:preferences` tab saves rather than erroring (confirmed
-   2026-07-25). Note what filename the dialog suggests there; if the
-   title is not exposed to the extension, the hostname or `page`
-   fallback applies.
+9. An `about:preferences` tab saves rather than erroring, with the
+   dialog suggesting `Settings 2026-07-25` (confirmed 2026-07-25).
 10. Cancelling the dialog produces no badge.
 11. Each option changes the next save as described: headers on restores
     the stamps, backgrounds off produces a white background, landscape

@@ -12,7 +12,7 @@
       }
     }
   },
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "menus"],
   "background": {
     "scripts": ["settings.js", "filename.js", "background.js"]
   },

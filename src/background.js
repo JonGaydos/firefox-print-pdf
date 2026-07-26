@@ -47,6 +47,43 @@ async function openPrintDialog() {
   }
 }
 
+const MENU_SAVE = "save-as-pdf";
+const MENU_PRINT = "save-as-pdf-dialog";
+const MENU_CONTEXTS = ["page", "selection", "tab"];
+
+async function syncMenus() {
+  await browser.menus.removeAll();
+  const { showContextMenu } = await loadSettings();
+  if (!showContextMenu) {
+    return;
+  }
+  browser.menus.create({
+    id: MENU_SAVE,
+    title: "Save as PDF",
+    contexts: MENU_CONTEXTS,
+  });
+  browser.menus.create({
+    id: MENU_PRINT,
+    title: "Save as PDF (print dialog)",
+    contexts: MENU_CONTEXTS,
+  });
+}
+
+browser.menus.onClicked.addListener(async (info, tab) => {
+  if (tab && tab.active === false) {
+    await browser.tabs.update(tab.id, { active: true });
+  }
+  if (info.menuItemId === MENU_SAVE) {
+    savePdf();
+  } else if (info.menuItemId === MENU_PRINT) {
+    openPrintDialog();
+  }
+});
+
+browser.storage.onChanged.addListener(syncMenus);
+
+syncMenus();
+
 browser.action.onClicked.addListener((tab, info) => {
   if (info && Array.isArray(info.modifiers) && info.modifiers.includes("Shift")) {
     openPrintDialog();

@@ -1,13 +1,5 @@
 const ERROR_BADGE_MS = 2000;
 
-const TEMPORARY_SETTINGS = {
-  headers: false,
-  backgrounds: true,
-  orientation: "portrait",
-  datePosition: "after",
-  stripSite: false,
-};
-
 function pageSettings(settings) {
   const stamps = settings.headers;
   return {
@@ -33,7 +25,7 @@ async function showError(message) {
 
 async function savePdf() {
   try {
-    const settings = TEMPORARY_SETTINGS;
+    const settings = await loadSettings();
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
       throw new Error("No active tab");

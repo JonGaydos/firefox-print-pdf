@@ -12,9 +12,9 @@
       }
     }
   },
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "storage"],
   "background": {
-    "scripts": ["filename.js", "background.js"]
+    "scripts": ["settings.js", "filename.js", "background.js"]
   },
   "action": {
     "default_title": "Save as PDF",

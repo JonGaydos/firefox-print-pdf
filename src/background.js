@@ -39,6 +39,18 @@ async function savePdf() {
   }
 }
 
-browser.action.onClicked.addListener(() => {
-  savePdf();
+async function openPrintDialog() {
+  try {
+    await browser.tabs.print();
+  } catch (error) {
+    await showError(error.message);
+  }
+}
+
+browser.action.onClicked.addListener((tab, info) => {
+  if (info && Array.isArray(info.modifiers) && info.modifiers.includes("Shift")) {
+    openPrintDialog();
+  } else {
+    savePdf();
+  }
 });

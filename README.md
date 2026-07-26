@@ -56,8 +56,8 @@ automatically.
 
 One-time steps per machine, about 30 seconds:
 
-1. Download `print_to_pdf.xpi` from this repository's Releases page
-   (https://github.com/JonGaydos/firefox-print-pdf/releases).
+1. Download the `.xpi` from the latest release on this repository's
+   Releases page (https://github.com/JonGaydos/firefox-print-pdf/releases).
 2. Open `about:addons`, click the gear icon, "Install Add-on From File",
    and pick the downloaded `.xpi`.
 3. Pin the button: puzzle-piece menu in the toolbar, gear next to

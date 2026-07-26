@@ -14,7 +14,7 @@
   },
   "permissions": ["activeTab"],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["filename.js", "background.js"]
   },
   "action": {
     "default_title": "Save as PDF",

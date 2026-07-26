@@ -4,6 +4,8 @@ const TEMPORARY_SETTINGS = {
   headers: false,
   backgrounds: true,
   orientation: "portrait",
+  datePosition: "after",
+  stripSite: false,
 };
 
 function pageSettings(settings) {
@@ -38,7 +40,7 @@ async function savePdf() {
     }
     await browser.tabs.saveAsPDF({
       ...pageSettings(settings),
-      toFileName: tab.title || "page",
+      toFileName: buildFilename(tab.title, tab.url, settings, new Date()),
     });
   } catch (error) {
     await showError(error.message);

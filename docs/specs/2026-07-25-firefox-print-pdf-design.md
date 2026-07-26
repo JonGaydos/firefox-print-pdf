@@ -66,14 +66,34 @@ including `about:` pages, `view-source:`, and addons.mozilla.org. This is
 a Firefox restriction with no workaround. The extension reports the
 failure rather than attempting to handle it.
 
-### Keyboard shortcut conflicts fail silently
+### Keyboard shortcut choice is constrained
 
-Per the `commands` documentation, a shortcut already claimed by Firefox
-or another add-on can still be declared, but the listener is never
-called and no error is raised. The chosen default (`Ctrl+Shift+Z`) is the
-conventional Redo combination, which Firefox honors in editable fields
-alongside `Ctrl+Y`. Whether it is claimed at the browser level could not
-be confirmed from documentation and must be established by testing.
+Two separate limits apply.
+
+First, `commands` accepts only a fixed key set: A-Z, 0-9, F1-F12, and
+`Comma`, `Period`, `Home`, `End`, `PageUp`, `PageDown`, `Space`,
+`Insert`, `Delete`, and the four arrow keys. Punctuation outside comma
+and period, brackets included, cannot be bound at all, by the manifest or
+by the user through Manage Extension Shortcuts.
+
+Second, a shortcut already claimed by Firefox or another add-on can still
+be declared, but the listener is never called and no error is raised.
+Conflicts are silent, so the chosen combination has to be verified by
+pressing it.
+
+The requirement is a left-hand combination. Checking Firefox's key table
+in `browser/base/content/browser-sets.inc`, every left-hand
+`Ctrl+<letter>` is taken except `Ctrl+Q`: W, R, T, S, D, F, G, B, and E
+are browser bindings, A, C, V, X, and Z are text editor bindings, and
+Ctrl+1 through Ctrl+5 switch tabs. `Ctrl+Q` is free on Windows only,
+because `key_quitApplication` is guarded to `accel,shift` under `XP_WIN`
+and plain `accel` elsewhere, so it would quit Firefox on Linux and
+macOS. It was rejected for that reason.
+
+`Ctrl+Shift+X` was chosen instead. It appears in neither `browser-sets.inc`
+nor the DevTools shortcut set, and it is safe on every platform. Note
+that `Ctrl+Shift+Z` is the DevTools Debugger panel and `Ctrl+Shift+S` is
+Screenshot, so neither is available.
 
 ### Unsigned extensions
 
@@ -89,7 +109,7 @@ passing. The background script is a thin wrapper around a single browser
 API call; the options page is a form that writes to `storage.sync`.
 
 ```
-toolbar click, or Ctrl+Shift+Z
+toolbar click, or Ctrl+Shift+X
   -> storage.sync.get, merged over built-in defaults
   -> tabs.query({active: true, currentWindow: true})
   -> build filename from tab.title (or hostname) and the date setting
@@ -185,14 +205,16 @@ explicitly. Omitting them does not disable them.
 ### Keyboard shortcut
 
 Declared in `manifest.json` under `commands` using the reserved name
-`_execute_action`, with `suggested_key.default` set to `Ctrl+Shift+Z`.
+`_execute_action`, with `suggested_key.default` set to `Ctrl+Shift+X`.
 Because no popup is defined, this fires the same `action.onClicked`
 listener as the toolbar button, so it requires no JavaScript at all.
 
-If testing shows the combination is claimed by Firefox, fall back in this
-order and record the working choice in the README: `Ctrl+Shift+Y`,
-`Alt+Shift+P`, `Ctrl+Alt+P`. Either way the user can rebind it under
-Manage Extension Shortcuts in `about:addons`.
+The combination is left hand only, which was the selection criterion.
+See Constraints for why the alternatives were rejected. If testing shows
+it is claimed after all, fall back to `Ctrl+Shift+F` and record the
+working choice in the README. Either way the user can rebind it under
+Manage Extension Shortcuts in `about:addons`, subject to the same
+restricted key set.
 
 ### Feedback
 
@@ -247,9 +269,10 @@ through `about:debugging` and before signing:
 1. `web-ext lint` reports no errors.
 2. A normal article page saves, and the dialog is prefilled with the page
    title followed by the date.
-3. `Ctrl+Shift+Z` on a normal page opens the same dialog. If nothing
-   happens, the combination is claimed; switch to the next fallback and
-   retest.
+3. `Ctrl+Shift+X` on a normal page opens the same dialog. If nothing
+   happens, the combination is claimed; switch to `Ctrl+Shift+F` and
+   retest. Test it once inside a text field as well, since editor
+   bindings apply there and not elsewhere.
 4. A page with a very long title produces a truncated but valid filename.
 5. A page with no title produces the hostname.
 6. The resulting PDF has no header or footer text and renders background

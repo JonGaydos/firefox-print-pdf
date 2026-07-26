@@ -179,23 +179,45 @@ print dialog:
 
 ### Files
 
-| Path              | Contents                                                  |
-| ----------------- | --------------------------------------------------------- |
-| `manifest.json`   | Manifest V3, `activeTab`, `storage`, and `menus` permissions, `action`, `commands`, `options_ui`, `browser_specific_settings.gecko.id`, `strict_min_version` |
-| `background.js`   | Entry point listeners, menu registration, settings load, filename builder, `saveAsPDF` and `print` calls, badge feedback |
-| `settings.js`     | The defaults object and a `loadSettings()` helper, shared by the background script and the options page |
-| `options.html`    | Settings form                                              |
-| `options.js`      | Loads current values, saves on change                      |
-| `icons/icon.svg`  | Toolbar icon. Firefox accepts SVG icons, so no PNG raster set is required |
-| `README.md`       | Signing, installation, update, and privacy notes           |
+Extension source lives under `src/` so that `web-ext` can package it with
+`--source-dir=src`, leaving tests, `package.json`, and `docs/` out of the
+zip.
 
-Rough sizes: `background.js` about 85 lines, `settings.js` about 25,
-`options.js` about 40, `options.html` about 70. If `background.js` grows
-past 110 lines the design has drifted and should be revisited.
+| Path                    | Contents                                            |
+| ----------------------- | --------------------------------------------------- |
+| `src/manifest.json`     | Manifest V3, `activeTab`, `storage`, and `menus` permissions, `action`, `commands`, `options_ui`, `browser_specific_settings.gecko.id`, `strict_min_version` |
+| `src/background.js`     | Entry point listeners, menu registration, page settings mapping, `saveAsPDF` and `print` calls, badge feedback |
+| `src/settings.js`       | `DEFAULTS`, `mergeSettings()`, and `loadSettings()`, shared by the background script and the options page |
+| `src/filename.js`       | `buildFilename()` and its helpers. Pure, no browser APIs |
+| `src/options.html`      | Settings form                                        |
+| `src/options.js`        | Loads current values, saves on change                |
+| `src/icons/icon.svg`    | Toolbar icon, themed with `context-fill`. Firefox accepts SVG icons, so no PNG raster set is required |
+| `test/filename.test.js` | Unit tests for `buildFilename()`                     |
+| `test/settings.test.js` | Unit tests for `mergeSettings()`                     |
+| `package.json`          | Test, lint, and build scripts. No dependencies       |
+| `README.md`             | Signing, installation, update, and privacy notes     |
+
+Rough sizes: `background.js` about 75 lines, `filename.js` about 45,
+`settings.js` about 35, `options.js` about 25, `options.html` about 45. If
+`background.js` grows past 110 lines the design has drifted and should be
+revisited.
 
 `settings.js` exists so the defaults are declared exactly once. Both the
 background script and the options page load it; they must never carry
 separate copies of the default values.
+
+`filename.js` is separate from `background.js` because it is the only
+non-trivial logic in the extension and the only part worth unit testing.
+It and `settings.js` each end with a two-line CommonJS export shim
+(`if (typeof module !== "undefined")`), which is inert in Firefox and lets
+`node --test` require the exact files Firefox loads, with no build step
+and no duplicated logic.
+
+Background scripts are classic scripts, not ES modules, because Firefox
+support for `"type": "module"` in the background key is undocumented and
+the extension targets Firefox 115. They share one global scope and run in
+the order listed, so `settings.js` and `filename.js` must precede
+`background.js`.
 
 ## Settings
 
@@ -320,11 +342,15 @@ No stored settings are applied and no filename is suggested on this path.
 Print preview owns those decisions, and passing settings it would then
 show as editable defaults is not possible through this API.
 
-Shift detection relies on the second argument to `action.onClicked`,
-which carries a `modifiers` array. This must be confirmed by running the
-extension. If the argument is unavailable in the target Firefox version,
-drop the Shift+click path and keep the context menu item, which is the
-more discoverable of the two anyway.
+Shift detection relies on the second argument to `action.onClicked`, an
+`OnClickData` object carrying a `modifiers` array whose values are
+`Shift`, `Alt`, `Command`, `Ctrl`, or `MacCtrl`. MDN documents this for
+Manifest V3 but states no minimum version, so the listener must guard
+against the argument being absent. The keyboard shortcut fires the same
+listener with no click data at all, which is the other reason to guard.
+If the argument turns out to be unavailable, drop the Shift+click path
+and keep the context menu item, which is the more discoverable of the two
+anyway.
 
 ### Feedback
 
@@ -382,13 +408,17 @@ checked against the source.
 
 ## Verification
 
-There are no automated tests. The extension is a UI-triggered wrapper
-around browser APIs that open native dialogs, so there is nothing to
-assert against without a browser harness larger than the extension
-itself.
+Two layers.
 
-Verification is manual, performed after loading the unsigned extension
-through `about:debugging` and before signing:
+`buildFilename()` and `mergeSettings()` are pure functions with real edge
+cases, and they carry unit tests run by `node --test` with no
+dependencies. They are the only automated tests, and they cover the only
+logic in the extension that can be wrong without being obvious.
+
+Everything else is browser glue: listeners calling APIs that open native
+dialogs. There is nothing to assert against without a harness larger than
+the extension itself, so it is verified by hand after loading the
+unsigned extension through `about:debugging` and before signing:
 
 1. `web-ext lint` reports no errors.
 2. A normal article page saves, and the dialog is prefilled with the page

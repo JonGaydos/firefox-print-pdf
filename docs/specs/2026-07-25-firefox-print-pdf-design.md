@@ -99,10 +99,17 @@ extension behavior, and the extension can neither enforce nor restore it.
 
 ### Privileged pages
 
-`saveAsPDF` fails on pages where extensions are not permitted to run,
-including `about:` pages, `view-source:`, and addons.mozilla.org. This is
-a Firefox restriction with no workaround. The extension reports the
-failure rather than attempting to handle it.
+The original design assumed `saveAsPDF` fails on privileged pages
+(`about:` pages, `view-source:`, addons.mozilla.org), reasoning from the
+rule that extensions cannot run there. Verification on 2026-07-25 showed
+otherwise: `about:preferences` saves normally. The cannot-run restriction
+applies to content scripts, and `saveAsPDF` renders in the parent
+process, so it is not blocked by it.
+
+The error badge is retained for genuine failures (no active tab, print
+engine errors), but there is no known page class that reliably triggers
+it. One consequence remains: on pages where `activeTab` does not expose
+the title, the filename falls back as described under Filename.
 
 ### Print rendering is not screen rendering
 
@@ -191,7 +198,7 @@ zip.
 | `src/filename.js`       | `buildFilename()` and its helpers. Pure, no browser APIs |
 | `src/options.html`      | Settings form                                        |
 | `src/options.js`        | Loads current values, saves on change                |
-| `src/icons/icon.svg`    | Toolbar icon, themed with `context-fill`. Firefox accepts SVG icons, so no PNG raster set is required |
+| `src/icons/icon-dark.svg`, `icon-light.svg` | Toolbar icon variants selected by `theme_icons`. Firefox accepts SVG icons, so no PNG raster set is required. An earlier single icon used `context-fill`, which renders blank in extension toolbar icons (it only works in privileged chrome contexts), hence the explicit two-variant approach |
 | `test/filename.test.js` | Unit tests for `buildFilename()`                     |
 | `test/settings.test.js` | Unit tests for `mergeSettings()`                     |
 | `package.json`          | Test, lint, and build scripts. No dependencies       |
@@ -435,8 +442,10 @@ unsigned extension through `about:debugging` and before signing:
 7. A page with no title produces the hostname.
 8. The resulting PDF has no header or footer text and renders background
    colors and images.
-9. An `about:preferences` tab triggers the error badge rather than
-   failing silently.
+9. An `about:preferences` tab saves rather than erroring (confirmed
+   2026-07-25). Note what filename the dialog suggests there; if the
+   title is not exposed to the extension, the hostname or `page`
+   fallback applies.
 10. Cancelling the dialog produces no badge.
 11. Each option changes the next save as described: headers on restores
     the stamps, backgrounds off produces a white background, landscape

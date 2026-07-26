@@ -17,8 +17,10 @@ Save dialog opens with the filename already filled in from the page title.
 - The extension cannot choose which folder the Save dialog opens in. Firefox
   reopens it wherever you last saved. Save to Downloads once and it will keep
   going there.
-- It cannot run on `about:` pages, `view-source:`, or addons.mozilla.org.
-  Firefox blocks extensions on those, and the button shows a red badge.
+- On Firefox's own pages (`about:` pages and similar) the page still saves,
+  but the suggested filename may fall back to the site hostname or `page`,
+  because Firefox does not expose those titles to extensions. If a save
+  cannot start at all, the button shows a red badge for two seconds.
 - The PDF is whatever Firefox's print engine produces, which follows the site's
   print stylesheet. Some sites drop images or navigation when printed, and
   content that has not loaded yet may be missing. Use the print dialog escape

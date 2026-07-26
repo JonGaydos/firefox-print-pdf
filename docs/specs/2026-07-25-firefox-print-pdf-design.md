@@ -19,9 +19,12 @@ extension collapses it to a single click.
 In scope:
 
 - A toolbar button that saves the active tab as a PDF.
-- A keyboard shortcut for the same action.
+- A keyboard shortcut and a context menu item for the same action.
+- An escape hatch that opens the full print dialog when a page needs
+  per-save adjustment.
 - A suggested filename built from the page title and the current date.
-- An options page covering print appearance and filename format.
+- An options page covering print appearance, filename format, and whether
+  the context menu item appears.
 - Brief visual feedback when the save cannot be performed.
 
 Out of scope:
@@ -32,9 +35,44 @@ Out of scope:
   to dismiss a separate native dialog per tab. Cancelling midway leaves
   the user on an arbitrary tab. This is a different feature, not an
   increment on this one.
+- Saving a link target as a PDF. Same reason: the API only acts on the
+  active tab, so a context menu item on a link cannot work.
 - Saving a selection or a region of a page.
+- Paper size and margin settings. Both are settable through
+  `PageSettings` and can be added later if the fixed values prove wrong.
 - Chrome or any non-Firefox browser. `tabs.saveAsPDF` is Firefox only.
 - Any control over which folder the dialog opens in. See Constraints.
+
+## Prior art
+
+The "Quick PDF" extension solves the same problem with a different
+mechanism, and the difference is the main design decision here. It
+declares the `scripting` permission and describes "secure messaging
+between the extension and webpage", and its documented flow ends in the
+print preview dialog. That is a content script calling `window.print()`.
+
+This design calls `tabs.saveAsPDF()` from the background script instead.
+The consequences favor the latter:
+
+- Fewer steps. `saveAsPDF` goes straight to the OS file picker with the
+  filename prefilled. `window.print()` opens print preview, where the
+  user must select a destination, save, and then name the file.
+- Cannot be broken by the page. A site can override or suppress
+  `window.print`. `tabs.saveAsPDF` runs in the parent process, above the
+  content, and pages cannot interfere with it.
+- Fewer permissions. No content script means neither `scripting` nor any
+  messaging code.
+
+Its documentation also claims Manifest V3 with "Firefox 90 and later",
+which is not possible, since MV3 arrived in Firefox 109. The document
+should be treated as marketing copy, not an API reference.
+
+One thing worth taking from it: its troubleshooting section advises
+ensuring nothing is selected on the page, which indicates its context
+menu item is registered for the `page` context only. Firefox switches to
+the `selection` context when text is highlighted, so the item disappears
+exactly when a user is most likely to be saving an article they have been
+reading. This design registers both.
 
 ## Constraints
 
@@ -66,6 +104,15 @@ including `about:` pages, `view-source:`, and addons.mozilla.org. This is
 a Firefox restriction with no workaround. The extension reports the
 failure rather than attempting to handle it.
 
+### Print rendering is not screen rendering
+
+The output is whatever Firefox's print engine produces, which is subject
+to the site's `@media print` stylesheet. Some sites strip navigation,
+change fonts, or hide images when printing. Content that has not loaded
+because it sits below the fold behind lazy loading may not appear at all.
+This is inherent to any extension built on the print engine, including
+Quick PDF, and is the reason the print dialog escape hatch exists.
+
 ### Keyboard shortcut choice is constrained
 
 Two separate limits apply.
@@ -90,10 +137,10 @@ because `key_quitApplication` is guarded to `accel,shift` under `XP_WIN`
 and plain `accel` elsewhere, so it would quit Firefox on Linux and
 macOS. It was rejected for that reason.
 
-`Ctrl+Shift+X` was chosen instead. It appears in neither `browser-sets.inc`
-nor the DevTools shortcut set, and it is safe on every platform. Note
-that `Ctrl+Shift+Z` is the DevTools Debugger panel and `Ctrl+Shift+S` is
-Screenshot, so neither is available.
+`Ctrl+Shift+X` was chosen instead. It appears in neither
+`browser-sets.inc` nor the DevTools shortcut set, and it is safe on every
+platform. Note that `Ctrl+Shift+Z` is the DevTools Debugger panel and
+`Ctrl+Shift+S` is Screenshot, so neither is available.
 
 ### Unsigned extensions
 
@@ -105,35 +152,46 @@ installation without publishing it to the public add-on directory.
 ## Architecture
 
 One background script, one options page, no content scripts, no message
-passing. The background script is a thin wrapper around a single browser
-API call; the options page is a form that writes to `storage.sync`.
+passing. The background script wraps two browser API calls; the options
+page is a form that writes to `storage.sync`.
 
 ```
-toolbar click, or Ctrl+Shift+X
-  -> storage.sync.get, merged over built-in defaults
+entry points
+  toolbar click            -> save
+  Ctrl+Shift+X             -> save
+  context menu "Save as PDF" -> save
+  Shift + toolbar click    -> print dialog
+  context menu "Save as PDF (print dialog)" -> print dialog
+
+save:
+  storage.sync.get, merged over built-in defaults
   -> tabs.query({active: true, currentWindow: true})
-  -> build filename from tab.title (or hostname) and the date setting
-  -> build pageSettings from the stored settings
+  -> build filename from tab.title (or hostname) and the filename settings
+  -> build pageSettings from the print settings
   -> tabs.saveAsPDF(pageSettings)
   -> resolve: "saved" | "replaced" | "canceled" | "not_saved" | "not_replaced"
   -> reject: privileged page or other failure -> error badge
+
+print dialog:
+  -> tabs.print()
+  -> no settings are applied, no filename is suggested
 ```
 
 ### Files
 
 | Path              | Contents                                                  |
 | ----------------- | --------------------------------------------------------- |
-| `manifest.json`   | Manifest V3, `activeTab` and `storage` permissions, `action`, `commands`, `options_ui`, `browser_specific_settings.gecko.id`, `strict_min_version` |
-| `background.js`   | Click listener, settings load, filename builder, `saveAsPDF` call, badge feedback |
+| `manifest.json`   | Manifest V3, `activeTab`, `storage`, and `menus` permissions, `action`, `commands`, `options_ui`, `browser_specific_settings.gecko.id`, `strict_min_version` |
+| `background.js`   | Entry point listeners, menu registration, settings load, filename builder, `saveAsPDF` and `print` calls, badge feedback |
 | `settings.js`     | The defaults object and a `loadSettings()` helper, shared by the background script and the options page |
 | `options.html`    | Settings form                                              |
 | `options.js`      | Loads current values, saves on change                      |
 | `icons/icon.svg`  | Toolbar icon. Firefox accepts SVG icons, so no PNG raster set is required |
-| `README.md`       | Signing, installation, and update instructions             |
+| `README.md`       | Signing, installation, update, and privacy notes           |
 
-Rough sizes: `background.js` about 55 lines, `settings.js` about 20,
-`options.js` about 35, `options.html` about 50. If `background.js` grows
-past 70 lines the design has drifted and should be revisited.
+Rough sizes: `background.js` about 85 lines, `settings.js` about 25,
+`options.js` about 40, `options.html` about 70. If `background.js` grows
+past 110 lines the design has drifted and should be revisited.
 
 `settings.js` exists so the defaults are declared exactly once. Both the
 background script and the options page load it; they must never carry
@@ -145,19 +203,24 @@ Stored in `storage.sync` so that settings follow a Firefox account across
 machines if Sync is enabled, and behave as local storage if it is not.
 Sync storage requires the add-on to have an explicit id, which it does.
 
-| Key            | Type    | Default | Effect                                     |
-| -------------- | ------- | ------- | ------------------------------------------ |
-| `headers`      | boolean | `false` | When true, restore Firefox's default header and footer stamps (`&T`, `&U`, `&PT`, `&D`). When false, all six fields are empty strings. |
-| `backgrounds`  | boolean | `true`  | Sets both `showBackgroundColors` and `showBackgroundImages`. |
-| `orientation`  | string  | `portrait` | `portrait` maps to `0`, `landscape` to `1`. |
-| `datePosition` | string  | `after` | `after`: `Title 2026-07-25`. `before`: `2026-07-25 Title`. `none`: `Title`. |
+| Key               | Type    | Default    | Effect                                  |
+| ----------------- | ------- | ---------- | --------------------------------------- |
+| `headers`         | boolean | `false`    | When true, restore Firefox's default header and footer stamps (`&T`, `&U`, `&PT`, `&D`). When false, all six fields are empty strings. |
+| `backgrounds`     | boolean | `true`     | Sets both `showBackgroundColors` and `showBackgroundImages`. |
+| `orientation`     | string  | `portrait` | `portrait` maps to `0`, `landscape` to `1`. |
+| `datePosition`    | string  | `after`    | `after`: `Title 2026-07-25`. `before`: `2026-07-25 Title`. `none`: `Title`. |
+| `stripSite`       | boolean | `false`    | Remove a trailing site name from the title. See Filename. |
+| `showContextMenu` | boolean | `true`     | Whether the two right-click items are registered. |
 
 Header and footer stamps are exposed as one setting rather than six
 fields. Anyone who wants per-corner control can be given it later; there
 is no evidence anyone does.
 
 Values are read fresh on each invocation rather than cached, so a change
-in the options page takes effect on the next click with no reload.
+in the options page takes effect on the next save with no reload. The one
+exception is `showContextMenu`, which must act on change: the background
+script listens to `storage.onChanged` and creates or removes the menu
+items in response.
 
 Any stored value that is missing or of the wrong type falls back to its
 default. The extension never writes settings from the background script.
@@ -171,11 +234,19 @@ Format depends on `datePosition`, defaulting to `<title> <YYYY-MM-DD>`.
 - The date is the local date at the time of the click, zero padded.
 - The title is the tab's title with whitespace collapsed to single
   spaces and leading and trailing whitespace removed.
+- If `stripSite` is on, a trailing site name is removed. A site name is a
+  final segment introduced by a separator surrounded by spaces, where the
+  separator is one of `-`, `|`, `–`, `—`, or `·`. The segment is removed
+  only if it is 40 characters or fewer and at least 10 characters of
+  title remain afterwards. Only the last such segment is removed. These
+  guards exist so that titles which legitimately contain a separator are
+  not mangled.
 - If the title is empty or missing, the hostname of the tab URL is used
   instead. If the URL has no hostname, the literal string `page` is used.
+  Site stripping does not apply to a hostname fallback.
 - The title portion is truncated to 120 characters to stay clear of the
-  Windows path length limit. Truncation happens before the date is
-  applied, so the date is always present.
+  Windows path length limit. Truncation happens after stripping and
+  before the date is applied, so the date is always present.
 - Characters that are illegal in filenames are sanitized by Firefox via
   `DownloadPaths.sanitize` before the picker is shown. The extension does
   not duplicate this.
@@ -184,7 +255,7 @@ Format depends on `datePosition`, defaulting to `<title> <YYYY-MM-DD>`.
 
 ### Print settings
 
-Built from the stored settings on each call.
+Built from the stored settings on each save.
 
 | `PageSettings` field                        | Source                          |
 | ------------------------------------------- | ------------------------------- |
@@ -216,6 +287,45 @@ working choice in the README. Either way the user can rebind it under
 Manage Extension Shortcuts in `about:addons`, subject to the same
 restricted key set.
 
+A command invocation carries no modifier information, so the keyboard
+shortcut always performs a save and never opens the print dialog.
+
+### Context menu
+
+Two items, registered under contexts `page`, `selection`, and `tab`:
+
+- "Save as PDF", which performs the same save as the toolbar button.
+- "Save as PDF (print dialog)", which opens print preview.
+
+The `selection` context matters: Firefox switches context when text is
+highlighted, and a `page`-only item disappears at exactly the moment a
+user is most likely to want it. The `tab` context puts the item on the
+tab strip, which is often where the pointer already is.
+
+Menu clicks grant `activeTab` the same way toolbar clicks do, so no
+additional permission is needed beyond `menus` itself.
+
+Both items are registered at startup only if `showContextMenu` is true,
+and are created or removed by a `storage.onChanged` listener when the
+setting is toggled.
+
+### Print dialog escape hatch
+
+`tabs.print()` opens Firefox's print preview, where paper size, scale,
+page ranges, and margins can all be adjusted for a single save. It is
+reached by holding Shift while clicking the toolbar button, or by the
+second context menu item.
+
+No stored settings are applied and no filename is suggested on this path.
+Print preview owns those decisions, and passing settings it would then
+show as editable defaults is not possible through this API.
+
+Shift detection relies on the second argument to `action.onClicked`,
+which carries a `modifiers` array. This must be confirmed by running the
+extension. If the argument is unavailable in the target Firefox version,
+drop the Shift+click path and keep the context menu item, which is the
+more discoverable of the two anyway.
+
 ### Feedback
 
 - Success, replace, and cancel are all terminal states with no feedback.
@@ -227,13 +337,18 @@ restricted key set.
 
 ## Permissions
 
-`activeTab` and `storage`.
+`activeTab`, `storage`, and `menus`.
 
 `activeTab` is granted for the active tab when the user clicks the
-toolbar button or triggers the command, which are the only entry points,
-and it grants access to that tab's title and URL. `storage` produces no
-user-visible install warning in Firefox. Between them the extension
-should install with no permission prompt.
+toolbar button, triggers the command, or picks a context menu item, which
+are the only entry points, and it grants access to that tab's title and
+URL. Neither `storage` nor `menus` produces a user-visible install
+warning in Firefox. Between them the extension should install with no
+permission prompt.
+
+Notably absent is `scripting`, which the comparable extension requires.
+Calling the tabs API from the background script needs no content script
+and no host permissions.
 
 Open question to resolve during implementation: whether `saveAsPDF`
 itself requires the broader `tabs` permission. MDN states no permission
@@ -256,10 +371,19 @@ extension, not by reading documentation.
 - Use the `browser.*` namespace with promises. The extension is Firefox
   only, so there is no reason to use the callback style `chrome.*` API.
 
+## Privacy
+
+The extension makes no network requests, bundles no third party code, has
+no analytics, and stores nothing except the six settings above. It reads
+the active tab's title and URL only at the moment it is invoked, uses
+them to build a filename, and discards them. This is a factual
+description of the design, and it belongs in the README so it can be
+checked against the source.
+
 ## Verification
 
 There are no automated tests. The extension is a UI-triggered wrapper
-around a browser API that opens a native dialog, so there is nothing to
+around browser APIs that open native dialogs, so there is nothing to
 assert against without a browser harness larger than the extension
 itself.
 
@@ -273,19 +397,26 @@ through `about:debugging` and before signing:
    happens, the combination is claimed; switch to `Ctrl+Shift+F` and
    retest. Test it once inside a text field as well, since editor
    bindings apply there and not elsewhere.
-4. A page with a very long title produces a truncated but valid filename.
-5. A page with no title produces the hostname.
-6. The resulting PDF has no header or footer text and renders background
+4. The context menu item appears on a plain page, on a page with text
+   selected, and on the tab strip, and saves from all three.
+5. Shift-clicking the button opens print preview rather than the save
+   dialog, as does the second context menu item.
+6. A page with a very long title produces a truncated but valid filename.
+7. A page with no title produces the hostname.
+8. The resulting PDF has no header or footer text and renders background
    colors and images.
-7. An `about:preferences` tab triggers the error badge rather than
+9. An `about:preferences` tab triggers the error badge rather than
    failing silently.
-8. Cancelling the dialog produces no badge.
-9. Each option changes the next save as described: headers on restores
-   the stamps, backgrounds off produces a white background, landscape
-   rotates the output, and each `datePosition` value produces the stated
-   filename shape.
-10. A fresh profile with no stored settings behaves as the defaults
-    table describes.
+10. Cancelling the dialog produces no badge.
+11. Each option changes the next save as described: headers on restores
+    the stamps, backgrounds off produces a white background, landscape
+    rotates the output, each `datePosition` value produces the stated
+    filename shape, and `stripSite` removes a site suffix without
+    mangling a title that merely contains a dash.
+12. Toggling `showContextMenu` off removes both menu items without
+    requiring a restart, and toggling it back on restores them.
+13. A fresh profile with no stored settings behaves as the defaults table
+    describes.
 
 ## Distribution
 

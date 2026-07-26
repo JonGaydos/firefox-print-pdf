@@ -306,10 +306,18 @@ explicitly. Omitting them does not disable them.
 
 ### Keyboard shortcut
 
-Declared in `manifest.json` under `commands` using the reserved name
-`_execute_action`, with `suggested_key.default` set to `Ctrl+Shift+X`.
-Because no popup is defined, this fires the same `action.onClicked`
-listener as the toolbar button, so it requires no JavaScript at all.
+Declared in `manifest.json` under `commands` as a named command
+`save-pdf` with `suggested_key.default` set to `Ctrl+Shift+X`, handled
+by a `commands.onCommand` listener that calls the same save path as the
+toolbar button.
+
+The original design used the reserved name `_execute_action`, which
+fires `action.onClicked` with no extra code. It was replaced during
+verification (2026-07-25) when the shortcut did not fire: Firefox has
+known flakiness dispatching `_execute_action` to `onClicked` for MV3
+extensions, and a named command removes that path entirely. A named
+command also gets a fresh per-command shortcut store, so the manifest
+default reliably applies rather than a previously stored value.
 
 The combination is left hand only, which was the selection criterion.
 See Constraints for why the alternatives were rejected. If testing shows
@@ -320,6 +328,10 @@ restricted key set.
 
 A command invocation carries no modifier information, so the keyboard
 shortcut always performs a save and never opens the print dialog.
+
+The two right-click items are grouped by Firefox into a submenu named
+after the extension, which is automatic for any extension registering
+more than one item in a context and cannot be overridden.
 
 ### Context menu
 
@@ -352,14 +364,10 @@ Print preview owns those decisions, and passing settings it would then
 show as editable defaults is not possible through this API.
 
 Shift detection relies on the second argument to `action.onClicked`, an
-`OnClickData` object carrying a `modifiers` array whose values are
-`Shift`, `Alt`, `Command`, `Ctrl`, or `MacCtrl`. MDN documents this for
-Manifest V3 but states no minimum version, so the listener must guard
-against the argument being absent. The keyboard shortcut fires the same
-listener with no click data at all, which is the other reason to guard.
-If the argument turns out to be unavailable, drop the Shift+click path
-and keep the context menu item, which is the more discoverable of the two
-anyway.
+`OnClickData` object carrying a `modifiers` array. Confirmed working
+2026-07-25: Shift+click opens print preview. The listener still guards
+against the argument being absent, because a command invocation carries
+no click data.
 
 ### Feedback
 
@@ -385,13 +393,10 @@ Notably absent is `scripting`, which the comparable extension requires.
 Calling the tabs API from the background script needs no content script
 and no host permissions.
 
-Open question to resolve during implementation: whether `saveAsPDF`
-itself requires the broader `tabs` permission. MDN states no permission
-requirement, and the API takes no tab id, which suggests `activeTab`
-suffices. If the call fails with a permission error under `activeTab`,
-switch the manifest to `tabs` and accept the resulting "read your
-browsing history" install warning. This must be confirmed by running the
-extension, not by reading documentation.
+Resolved 2026-07-25: `saveAsPDF` works under `activeTab` alone,
+confirmed by saving pages with correct titles in the suggested filename,
+including `about:preferences`. The `tabs` permission fallback in the
+original design was never needed.
 
 ## Manifest details
 

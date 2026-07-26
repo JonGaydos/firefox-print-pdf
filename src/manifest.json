@@ -25,7 +25,7 @@
     ]
   },
   "commands": {
-    "_execute_action": {
+    "save-pdf": {
       "suggested_key": { "default": "Ctrl+Shift+X" },
       "description": "Save the page as a PDF"
     }

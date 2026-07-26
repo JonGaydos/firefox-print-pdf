@@ -84,6 +84,12 @@ browser.storage.onChanged.addListener(syncMenus);
 
 syncMenus();
 
+browser.commands.onCommand.addListener((name) => {
+  if (name === "save-pdf") {
+    savePdf();
+  }
+});
+
 browser.action.onClicked.addListener((tab, info) => {
   if (info && Array.isArray(info.modifiers) && info.modifiers.includes("Shift")) {
     openPrintDialog();

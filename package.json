@@ -1,0 +1,11 @@
+{
+  "name": "firefox-print-pdf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Firefox extension that saves the current page as a PDF in one click.",
+  "scripts": {
+    "test": "node --test test/",
+    "lint": "npx --yes web-ext lint --source-dir=src",
+    "build": "npx --yes web-ext build --source-dir=src --artifacts-dir=dist --overwrite-dest"
+  }
+}

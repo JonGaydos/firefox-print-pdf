@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { DEFAULTS, mergeSettings } = require("../src/settings.js");
+const { DEFAULTS, mergeSettings, buildTemplate } = require("../src/settings.js");
 
 test("returns the defaults for empty storage", () => {
   assert.deepStrictEqual(mergeSettings({}), DEFAULTS);
@@ -17,6 +17,11 @@ test("defaults are the documented values", () => {
     orientation: "portrait",
     paperSize: "letter",
     margins: "normal",
+    fnDate: true,
+    fnTime: false,
+    fnHostname: false,
+    fnDateFirst: false,
+    customTemplate: false,
     template: "{title} {date}",
     stripSite: false,
     showContextMenu: true,
@@ -48,27 +53,68 @@ test("ignores unknown keys", () => {
   assert.deepStrictEqual(mergeSettings({ nonsense: 1 }), DEFAULTS);
 });
 
-test("accepts a stored template", () => {
-  assert.strictEqual(mergeSettings({ template: "{date} {title}" }).template, "{date} {title}");
+test("buildTemplate covers the default", () => {
+  assert.strictEqual(
+    buildTemplate({ fnDate: true, fnTime: false, fnHostname: false, fnDateFirst: false }),
+    "{title} {date}");
 });
 
-test("ignores a blank template", () => {
-  assert.strictEqual(mergeSettings({ template: "   " }).template, "{title} {date}");
+test("buildTemplate places the stamp before the title", () => {
+  assert.strictEqual(
+    buildTemplate({ fnDate: true, fnTime: true, fnHostname: false, fnDateFirst: true }),
+    "{date} {time} {title}");
 });
 
-test("ignores a non-string template", () => {
-  assert.strictEqual(mergeSettings({ template: 7 }).template, "{title} {date}");
+test("buildTemplate appends the hostname last", () => {
+  assert.strictEqual(
+    buildTemplate({ fnDate: true, fnTime: false, fnHostname: true, fnDateFirst: false }),
+    "{title} {date} {hostname}");
 });
 
-test("migrates datePosition before to a template", () => {
-  assert.strictEqual(mergeSettings({ datePosition: "before" }).template, "{date} {title}");
+test("buildTemplate with nothing checked is the title alone", () => {
+  assert.strictEqual(
+    buildTemplate({ fnDate: false, fnTime: false, fnHostname: false, fnDateFirst: false }),
+    "{title}");
 });
 
-test("migrates datePosition none to a template", () => {
-  assert.strictEqual(mergeSettings({ datePosition: "none" }).template, "{title}");
+test("builder settings derive the template", () => {
+  const result = mergeSettings({ fnDate: true, fnTime: true, fnDateFirst: true, customTemplate: false });
+  assert.strictEqual(result.template, "{date} {time} {title}");
 });
 
-test("a stored template wins over a legacy datePosition", () => {
-  const result = mergeSettings({ datePosition: "none", template: "{time} {title}" });
-  assert.strictEqual(result.template, "{time} {title}");
+test("custom mode preserves the stored template verbatim", () => {
+  const result = mergeSettings({ customTemplate: true, template: "{year}-{month} {title}" });
+  assert.strictEqual(result.template, "{year}-{month} {title}");
+});
+
+test("infers builder state from a 1.1 template", () => {
+  const result = mergeSettings({ template: "{date} {title}" });
+  assert.strictEqual(result.fnDate, true);
+  assert.strictEqual(result.fnDateFirst, true);
+  assert.strictEqual(result.customTemplate, false);
+});
+
+test("infers custom mode from an inexpressible template", () => {
+  const result = mergeSettings({ template: "{title} saved {date}" });
+  assert.strictEqual(result.customTemplate, true);
+  assert.strictEqual(result.template, "{title} saved {date}");
+});
+
+test("migrates a legacy datePosition to builder state", () => {
+  const result = mergeSettings({ datePosition: "before" });
+  assert.strictEqual(result.template, "{date} {title}");
+  assert.strictEqual(result.fnDateFirst, true);
+  assert.strictEqual(result.customTemplate, false);
+});
+
+test("migrates datePosition none to date unchecked", () => {
+  const result = mergeSettings({ datePosition: "none" });
+  assert.strictEqual(result.template, "{title}");
+  assert.strictEqual(result.fnDate, false);
+});
+
+test("stored builder state is not overridden by inference", () => {
+  const result = mergeSettings({ fnDate: false, customTemplate: false, template: "{title} {date}" });
+  assert.strictEqual(result.fnDate, false);
+  assert.strictEqual(result.template, "{title}");
 });

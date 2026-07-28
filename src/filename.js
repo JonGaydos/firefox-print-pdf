@@ -51,9 +51,12 @@ function buildFilename(title, url, settings, date) {
     date: formatDate(date),
     time: formatTime(date),
     hostname: hostnameOf(url),
+    year: String(date.getFullYear()),
+    month: pad(date.getMonth() + 1),
+    day: pad(date.getDate()),
   };
   const name = settings.template
-    .replace(/\{(title|date|time|hostname)\}/g, (token, key) => parts[key])
+    .replace(/\{(title|date|time|hostname|year|month|day)\}/g, (token, key) => parts[key])
     .replace(/\s+/g, " ")
     .trim();
   return name || base;

@@ -36,6 +36,12 @@ test("renders the hostname token", () => {
     "example.com Report");
 });
 
+test("renders year, month, and day tokens", () => {
+  assert.strictEqual(
+    buildFilename("Report", URL, { template: "{month}-{day}-{year} {title}", stripSite: false }, DATE),
+    "07-25-2026 Report");
+});
+
 test("leaves unknown tokens as literal text", () => {
   assert.strictEqual(
     buildFilename("Report", URL, { template: "{title} {nonsense}", stripSite: false }, DATE),

@@ -4,6 +4,11 @@ const DEFAULTS = {
   orientation: "portrait",
   paperSize: "letter",
   margins: "normal",
+  fnDate: true,
+  fnTime: false,
+  fnHostname: false,
+  fnDateFirst: false,
+  customTemplate: false,
   template: "{title} {date}",
   stripSite: false,
   showContextMenu: true,
@@ -20,6 +25,35 @@ const TEMPLATE_BY_DATE_POSITION = {
   before: "{date} {title}",
   none: "{title}",
 };
+
+const BUILDER_KEYS = ["fnDate", "fnTime", "fnHostname", "fnDateFirst", "customTemplate"];
+
+function buildTemplate(state) {
+  const stamp = [state.fnDate ? "{date}" : "", state.fnTime ? "{time}" : ""]
+    .filter(Boolean)
+    .join(" ");
+  const parts = state.fnDateFirst ? [stamp, "{title}"] : ["{title}", stamp];
+  if (state.fnHostname) {
+    parts.push("{hostname}");
+  }
+  return parts.filter(Boolean).join(" ");
+}
+
+function inferBuilder(template) {
+  for (const fnDateFirst of [false, true]) {
+    for (const fnDate of [true, false]) {
+      for (const fnTime of [false, true]) {
+        for (const fnHostname of [false, true]) {
+          const state = { fnDate, fnTime, fnHostname, fnDateFirst };
+          if (buildTemplate(state) === template) {
+            return { ...state, customTemplate: false };
+          }
+        }
+      }
+    }
+  }
+  return { customTemplate: true };
+}
 
 function mergeSettings(stored) {
   const merged = { ...DEFAULTS };
@@ -44,6 +78,13 @@ function mergeSettings(stored) {
   } else if (TEMPLATE_BY_DATE_POSITION[stored.datePosition]) {
     merged.template = TEMPLATE_BY_DATE_POSITION[stored.datePosition];
   }
+  const hasBuilderState = BUILDER_KEYS.some((key) => typeof stored[key] === "boolean");
+  if (!hasBuilderState) {
+    Object.assign(merged, inferBuilder(merged.template));
+  }
+  if (!merged.customTemplate) {
+    merged.template = buildTemplate(merged);
+  }
   return merged;
 }
 
@@ -53,5 +94,5 @@ async function loadSettings() {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { DEFAULTS, mergeSettings };
+  module.exports = { DEFAULTS, mergeSettings, buildTemplate };
 }

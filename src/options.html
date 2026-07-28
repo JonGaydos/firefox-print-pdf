@@ -6,6 +6,8 @@
     <style>
       body { font: message-box; font-size: 13px; margin: 16px; min-width: 340px; }
       h1 { font-size: 15px; margin: 0 0 14px; font-weight: 600; }
+      h2 { font-size: 13px; margin: 16px 0 6px; font-weight: 600; }
+      input[type="text"]:disabled { opacity: 0.5; }
       label { display: block; margin: 10px 0; }
       select { margin-left: 6px; }
       p.note { color: GrayText; margin: 18px 0 0; line-height: 1.4; }
@@ -42,14 +44,23 @@
       </select>
     </label>
 
-    <label>Filename template
+    <h2>Filename</h2>
+
+    <label><input type="checkbox" id="fnDate"> Include the date</label>
+    <label><input type="checkbox" id="fnTime"> Include the time</label>
+    <label><input type="checkbox" id="fnHostname"> Include the site address</label>
+    <label><input type="checkbox" id="fnDateFirst"> Put the date before the title</label>
+
+    <label><input type="checkbox" id="customTemplate"> Use a custom template</label>
+    <label>Template
       <input type="text" id="template" size="26" spellcheck="false">
     </label>
     <p class="note">
-      Tokens: {title}, {date}, {time}, {hostname}.
-      Example: {date} {title} gives "2026-07-27 Page Title".
-      A blank template falls back to the title.
+      Custom template tokens: {title}, {date}, {time}, {hostname},
+      {year}, {month}, {day}. A template that comes out blank falls back
+      to the title.
     </p>
+    <p class="note" id="preview"></p>
 
     <p class="note">
       Changes apply to the next save. The Save dialog opens in the folder you
@@ -57,6 +68,7 @@
     </p>
 
     <script src="settings.js"></script>
+    <script src="filename.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

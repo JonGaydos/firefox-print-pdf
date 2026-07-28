@@ -244,7 +244,9 @@ Sync storage requires the add-on to have an explicit id, which it does.
 | `orientation`     | string  | `portrait`       | `portrait` maps to `0`, `landscape` to `1`. |
 | `paperSize`       | string  | `letter`         | `letter` 8.5x11in, `legal` 8.5x14in, `a4` 210x297mm (`paperSizeUnit` 1). Added in 1.1.0. |
 | `margins`         | string  | `normal`         | All four margins: `normal` 0.5in, `narrow` 0.25in, `none` 0. Added in 1.1.0. |
-| `template`        | string  | `{title} {date}` | Filename template. Tokens `{title}`, `{date}`, `{time}` (HH.MM, dot because a colon is illegal on Windows), `{hostname}`. Unknown tokens stay literal. A template that renders blank falls back to the title. Added in 1.1.0, replacing `datePosition`. |
+| `template`        | string  | `{title} {date}` | Filename template. Tokens `{title}`, `{date}`, `{time}` (HH.MM, dot because a colon is illegal on Windows), `{hostname}`, and from 1.2.0 `{year}`, `{month}`, `{day}`. Unknown tokens stay literal. A template that renders blank falls back to the title. Added in 1.1.0, replacing `datePosition`. |
+| `fnDate`, `fnTime`, `fnHostname`, `fnDateFirst` | boolean | `true`, `false`, `false`, `false` | Filename builder checkboxes (1.2.0). When `customTemplate` is false, `template` is derived from these: an optional date and time stamp before or after the title, hostname appended last. |
+| `customTemplate`  | boolean | `false`          | When true, the stored `template` string is used verbatim and the builder checkboxes are ignored (1.2.0). |
 | `stripSite`       | boolean | `false`          | Remove a trailing site name from the title. See Filename. |
 | `showContextMenu` | boolean | `true`           | Whether the right-click items are registered. |
 
@@ -253,6 +255,19 @@ equivalent template (`after` to `{title} {date}`, `before` to
 `{date} {title}`, `none` to `{title}`), and an explicitly stored
 `template` always wins. The old key is never deleted from storage, it is
 simply ignored once a template exists.
+
+Profiles upgrading from 1.1.0 have a `template` but no builder state.
+`mergeSettings` infers it: if the template exactly matches one the
+builder can produce, the checkboxes take those values; otherwise
+`customTemplate` becomes true and the template is preserved verbatim.
+Inference runs only when none of the five builder keys is stored, so it
+happens once per profile in effect. When `customTemplate` is false the
+template is always re-derived from the checkboxes, which keeps the two
+representations consistent no matter what is in storage.
+
+The options page shows the checkboxes, a disabled-unless-custom template
+field, and a live example filename. It loads `filename.js` alongside
+`settings.js` so the preview uses the real `buildFilename`.
 
 Header and footer stamps are exposed as one setting rather than six
 fields. Anyone who wants per-corner control can be given it later; there

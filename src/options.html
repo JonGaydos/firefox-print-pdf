@@ -26,13 +26,30 @@
       </select>
     </label>
 
-    <label>Date in the filename
-      <select id="datePosition">
-        <option value="after">After the title</option>
-        <option value="before">Before the title</option>
-        <option value="none">No date</option>
+    <label>Paper size
+      <select id="paperSize">
+        <option value="letter">Letter (8.5 x 11 in)</option>
+        <option value="legal">Legal (8.5 x 14 in)</option>
+        <option value="a4">A4 (210 x 297 mm)</option>
       </select>
     </label>
+
+    <label>Margins
+      <select id="margins">
+        <option value="normal">Normal (0.5 in)</option>
+        <option value="narrow">Narrow (0.25 in)</option>
+        <option value="none">None</option>
+      </select>
+    </label>
+
+    <label>Filename template
+      <input type="text" id="template" size="26" spellcheck="false">
+    </label>
+    <p class="note">
+      Tokens: {title}, {date}, {time}, {hostname}.
+      Example: {date} {title} gives "2026-07-27 Page Title".
+      A blank template falls back to the title.
+    </p>
 
     <p class="note">
       Changes apply to the next save. The Save dialog opens in the folder you

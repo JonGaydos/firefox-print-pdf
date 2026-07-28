@@ -1,5 +1,6 @@
 const CHECKBOXES = ["headers", "backgrounds", "stripSite", "showContextMenu"];
-const SELECTS = ["orientation", "datePosition"];
+const SELECTS = ["orientation", "paperSize", "margins"];
+const TEXTS = ["template"];
 
 function onChange(event) {
   const control = event.target;
@@ -12,12 +13,12 @@ async function restore() {
   for (const id of CHECKBOXES) {
     document.getElementById(id).checked = settings[id];
   }
-  for (const id of SELECTS) {
+  for (const id of [...SELECTS, ...TEXTS]) {
     document.getElementById(id).value = settings[id];
   }
 }
 
-for (const id of [...CHECKBOXES, ...SELECTS]) {
+for (const id of [...CHECKBOXES, ...SELECTS, ...TEXTS]) {
   document.getElementById(id).addEventListener("change", onChange);
 }
 

@@ -7,10 +7,20 @@ Save dialog opens with the filename already filled in from the page title.
 
 - Click the toolbar button, or press `Ctrl+Shift+F`, or right-click the page
   and choose "Save as PDF".
-- Hold Shift while clicking the button, or choose "Save as PDF (print dialog)",
-  to open Firefox's print preview instead, where paper size, scale, and page
-  ranges can be adjusted for one save.
-- Settings are under `about:addons`, this extension, Preferences.
+- "Save as PDF (Reader View)" in the right-click menu saves the article as
+  Reader View renders it: clean text without the site's layout. Useful when
+  a site's print output is broken. Only available on pages Firefox
+  recognizes as articles.
+- Hold Shift while clicking the button, press `Alt+Shift+F`, or choose
+  "Save as PDF (print dialog)" to open Firefox's print preview instead,
+  where scale and page ranges can be adjusted for one save. The extension's
+  settings do not apply there; Firefox's own print settings do.
+- Settings are under `about:addons`, this extension, Preferences: headers
+  and footers, backgrounds, orientation, paper size (Letter, Legal, A4),
+  margins, the filename template, site name stripping, and context menu
+  visibility.
+- The filename template accepts `{title}`, `{date}`, `{time}`, and
+  `{hostname}`. The default is `{title} {date}`.
 
 ## Known limits
 

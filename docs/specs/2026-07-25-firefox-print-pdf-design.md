@@ -237,14 +237,22 @@ Stored in `storage.sync` so that settings follow a Firefox account across
 machines if Sync is enabled, and behave as local storage if it is not.
 Sync storage requires the add-on to have an explicit id, which it does.
 
-| Key               | Type    | Default    | Effect                                  |
-| ----------------- | ------- | ---------- | --------------------------------------- |
-| `headers`         | boolean | `false`    | When true, restore Firefox's default header and footer stamps (`&T`, `&U`, `&PT`, `&D`). When false, all six fields are empty strings. |
-| `backgrounds`     | boolean | `true`     | Sets both `showBackgroundColors` and `showBackgroundImages`. |
-| `orientation`     | string  | `portrait` | `portrait` maps to `0`, `landscape` to `1`. |
-| `datePosition`    | string  | `after`    | `after`: `Title 2026-07-25`. `before`: `2026-07-25 Title`. `none`: `Title`. |
-| `stripSite`       | boolean | `false`    | Remove a trailing site name from the title. See Filename. |
-| `showContextMenu` | boolean | `true`     | Whether the two right-click items are registered. |
+| Key               | Type    | Default          | Effect                            |
+| ----------------- | ------- | ---------------- | --------------------------------- |
+| `headers`         | boolean | `false`          | When true, restore Firefox's default header and footer stamps (`&T`, `&U`, `&PT`, `&D`). When false, all six fields are empty strings. |
+| `backgrounds`     | boolean | `true`           | Sets both `showBackgroundColors` and `showBackgroundImages`. |
+| `orientation`     | string  | `portrait`       | `portrait` maps to `0`, `landscape` to `1`. |
+| `paperSize`       | string  | `letter`         | `letter` 8.5x11in, `legal` 8.5x14in, `a4` 210x297mm (`paperSizeUnit` 1). Added in 1.1.0. |
+| `margins`         | string  | `normal`         | All four margins: `normal` 0.5in, `narrow` 0.25in, `none` 0. Added in 1.1.0. |
+| `template`        | string  | `{title} {date}` | Filename template. Tokens `{title}`, `{date}`, `{time}` (HH.MM, dot because a colon is illegal on Windows), `{hostname}`. Unknown tokens stay literal. A template that renders blank falls back to the title. Added in 1.1.0, replacing `datePosition`. |
+| `stripSite`       | boolean | `false`          | Remove a trailing site name from the title. See Filename. |
+| `showContextMenu` | boolean | `true`           | Whether the right-click items are registered. |
+
+`datePosition` (1.0.0) is migrated: a stored value maps to the
+equivalent template (`after` to `{title} {date}`, `before` to
+`{date} {title}`, `none` to `{title}`), and an explicitly stored
+`template` always wins. The old key is never deleted from storage, it is
+simply ignored once a template exists.
 
 Header and footer stamps are exposed as one setting rather than six
 fields. Anyone who wants per-corner control can be given it later; there
@@ -329,8 +337,10 @@ working choice in the README. Either way the user can rebind it under
 Manage Extension Shortcuts in `about:addons`, subject to the same
 restricted key set.
 
-A command invocation carries no modifier information, so the keyboard
-shortcut always performs a save and never opens the print dialog.
+A command invocation carries no modifier information, so the save
+shortcut never opens the print dialog. Instead a second named command
+`open-print-dialog` (added 1.1.0, default `Alt+Shift+F`) reaches the
+escape hatch from the keyboard.
 
 The two right-click items are grouped by Firefox into a submenu named
 after the extension, which is automatic for any extension registering
@@ -338,9 +348,17 @@ more than one item in a context and cannot be overridden.
 
 ### Context menu
 
-Two items, registered under contexts `page`, `selection`, and `tab`:
+Three items, registered under contexts `page`, `selection`, and `tab`:
 
 - "Save as PDF", which performs the same save as the toolbar button.
+- "Save as PDF (Reader View)" (added 1.1.0), which toggles the tab into
+  Reader View, saves, and toggles back. The filename is computed from
+  the title and URL captured before entering Reader View, both because
+  that is the real page identity and because the `activeTab` grant may
+  not survive the reader-mode navigation. If `tab.isArticle` is false,
+  the error badge shows and nothing is toggled. Waiting for the reader
+  document uses `tabs.onUpdated` status `complete` with a five second
+  timeout, and leaving Reader View is attempted even if the save fails.
 - "Save as PDF (print dialog)", which opens print preview.
 
 The `selection` context matters: Firefox switches context when text is

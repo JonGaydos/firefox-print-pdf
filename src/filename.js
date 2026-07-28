@@ -3,9 +3,16 @@ const MAX_SITE_LENGTH = 40;
 const MIN_TITLE_REMAINING = 10;
 const SITE_SUFFIX = /^(.*\S)\s+[-|–—·]\s+(\S.*)$/;
 
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
 function formatDate(date) {
-  const pad = (value) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatTime(date) {
+  return `${pad(date.getHours())}.${pad(date.getMinutes())}`;
 }
 
 function stripSiteName(title) {
@@ -39,11 +46,17 @@ function buildFilename(title, url, settings, date) {
   if (base.length > MAX_TITLE_LENGTH) {
     base = base.slice(0, MAX_TITLE_LENGTH).trim();
   }
-  if (settings.datePosition === "none") {
-    return base;
-  }
-  const stamp = formatDate(date);
-  return settings.datePosition === "before" ? `${stamp} ${base}` : `${base} ${stamp}`;
+  const parts = {
+    title: base,
+    date: formatDate(date),
+    time: formatTime(date),
+    hostname: hostnameOf(url),
+  };
+  const name = settings.template
+    .replace(/\{(title|date|time|hostname)\}/g, (token, key) => parts[key])
+    .replace(/\s+/g, " ")
+    .trim();
+  return name || base;
 }
 
 if (typeof module !== "undefined") {

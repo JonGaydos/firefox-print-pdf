@@ -2,26 +2,50 @@ const test = require("node:test");
 const assert = require("node:assert");
 const { buildFilename, stripSiteName } = require("../src/filename.js");
 
-const AFTER = { datePosition: "after", stripSite: false };
-const BEFORE = { datePosition: "before", stripSite: false };
-const NONE = { datePosition: "none", stripSite: false };
-const STRIP = { datePosition: "none", stripSite: true };
-const DATE = new Date(2026, 6, 25);
+const AFTER = { template: "{title} {date}", stripSite: false };
+const BEFORE = { template: "{date} {title}", stripSite: false };
+const NONE = { template: "{title}", stripSite: false };
+const STRIP = { template: "{title}", stripSite: true };
+const DATE = new Date(2026, 6, 25, 14, 5);
 const URL = "https://example.com/article";
 
-test("puts the date after the title by default", () => {
+test("renders title then date with the default template", () => {
   assert.strictEqual(buildFilename("Quarterly Report", URL, AFTER, DATE),
     "Quarterly Report 2026-07-25");
 });
 
-test("puts the date before the title when asked", () => {
+test("renders date then title", () => {
   assert.strictEqual(buildFilename("Quarterly Report", URL, BEFORE, DATE),
     "2026-07-25 Quarterly Report");
 });
 
-test("omits the date when asked", () => {
+test("renders title alone", () => {
   assert.strictEqual(buildFilename("Quarterly Report", URL, NONE, DATE),
     "Quarterly Report");
+});
+
+test("renders the time token with a dot separator", () => {
+  assert.strictEqual(
+    buildFilename("Report", URL, { template: "{title} {date} {time}", stripSite: false }, DATE),
+    "Report 2026-07-25 14.05");
+});
+
+test("renders the hostname token", () => {
+  assert.strictEqual(
+    buildFilename("Report", URL, { template: "{hostname} {title}", stripSite: false }, DATE),
+    "example.com Report");
+});
+
+test("leaves unknown tokens as literal text", () => {
+  assert.strictEqual(
+    buildFilename("Report", URL, { template: "{title} {nonsense}", stripSite: false }, DATE),
+    "Report {nonsense}");
+});
+
+test("falls back to the title when the template renders empty", () => {
+  assert.strictEqual(
+    buildFilename("Report", URL, { template: "   ", stripSite: false }, DATE),
+    "Report");
 });
 
 test("zero pads single digit months and days", () => {

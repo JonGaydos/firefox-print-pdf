@@ -8,10 +8,11 @@ No data collection, no network requests, no dependencies. MIT licensed.
 
 ## Install
 
-From the Firefox add-ons site (link arrives with the first listed
-release), or download the signed `.xpi` from this repository's Releases
-page and install it via `about:addons`, gear icon, "Install Add-on From
-File".
+From the Firefox add-ons site:
+https://addons.mozilla.org/en-US/firefox/addon/one-click-print-to-pdf/
+
+Or download the signed `.xpi` from this repository's Releases page and
+install it via `about:addons`, gear icon, "Install Add-on From File".
 
 ## Use
 
